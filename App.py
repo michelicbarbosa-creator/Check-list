@@ -12,11 +12,13 @@ if 'materials_list' not in st.session_state:
     st.session_state.materials_list = []
 if 'sizes_history' not in st.session_state:
     st.session_state.sizes_history = []
+if 'institute_shipments' not in st.session_state:
+    st.session_state.institute_shipments = []
 
 status_options = [
-    "🟥 NO NEED", 
-    "🟨 IN PROGRESS / EM PROCESSO", 
-    "🟩 GREEN / OK / TERMINADO"
+    "NO NEED", 
+    "IN PROGRESS / EM PROCESSO", 
+    "GREEN / OK / TERMINADO"
 ]
 
 # CRIAÇÃO DOS VALORES PADRÃO DA SESSÃO
@@ -46,10 +48,10 @@ def check_expiration(exp_date):
     else:
         return "🟩 Valid Document", "success"
 
-# --- ESTRUTURA RECONFIGURADA DAS 6 ABAS ---
+# --- ESTRUTURA DAS 6 ABAS NA TELA ---
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "1. Project Info", "2. Documents (Multi-Material)", "3. Technical Documentation", 
-    "4. Sample Garment (Size)", "5. Sample Mockups", "6. Preview & Finalisation"
+    "4. Sample Garment (3-Sections Log)", "5. Sample Mockups", "6. Preview & Finalisation"
 ])
 
 # ================= TAB 1: PROJECT INFO =================
@@ -119,82 +121,78 @@ with tab3:
     saved_folder = st.selectbox("SAVED IN FOLDER", status_options, index=0)
     label_status = st.selectbox("LABEL", status_options, index=0)
 
-# ================= TAB 4: SAMPLE GARMENT (FOCO EM SIZE) =================
+# ================= TAB 4: SAMPLE GARMENT (AS 3 SECÇÕES COMPLETAS E ORGANIZADAS) =================
 with tab4:
-    st.header("Sample Garment Tracking & Size Production Log")
+    st.header("Sample Garment & Institute Shipment Tracking")
     
-    col_status, col_sizes = st.columns(2)
-    
-    with col_status:
-        st.subheader("⚙️ Status Checklist")
+    # ⚙️ SECÇÃO 1: STATUS CHECKLIST (Sempre ativa no topo)
+    st.subheader("⚙️ General Checklist Status")
+    col_s1, col_s2, col_s3 = st.columns(3)
+    with col_s1:
         s_inprogress = st.selectbox("SAMPLE IN PROGRESS", status_options, index=0)
         s_revision = st.selectbox("SAMPLE REVISION AT KUNG", status_options, index=0)
+    with col_s2:
         s_confirmed = st.selectbox("SAMPLE CONFIRMED", status_options, index=0)
         s_sent_oeti = st.selectbox("SAMPLE SENT TO OETI", status_options, index=0)
-        s_excel = st.selectbox("SAMPLE ENTERED IN 'OVERVIEW OF REQUIRED SAMPLE (EXCEL FILE)'", status_options, index=0)
+    with col_s3:
+        s_excel = st.selectbox("SAMPLE ENTERED IN OVERVIEW (EXCEL)", status_options, index=0)
 
-    # SEÇÃO EXCLUSIVA DE SIZE COM DATA
+    st.markdown("---")
+    col_sizes, col_ship = st.columns(2)
+    
+    # 📦 SECÇÃO 2: PRODUCTION SIZES (Coluna da Esquerda)
     with col_sizes:
         st.subheader("📦 Production Size Log (Size)")
         input_size_qty = st.number_input("QUANTITY (Qty)", min_value=1, value=1, key="sz_qty")
-        input_order_num = st.text_input("ORDER NUMBER (Order No.)", value="ORD-2026")
-        input_size = st.text_input("SIZE (e.g., S, M, L / 38, 40, 42)", value="M", key="sz_val")
+        input_order_num = st.text_input("ORDER NUMBER (Order No.)", value="ORD-2026", key="sz_ord")
+        input_size = st.text_input("SIZE (e.g., M, L, 42)", value="M", key="sz_val")
         input_size_date = st.date_input("PRODUCTION DATE", datetime.date.today(), key="sz_date")
         
-        if st.button("➕ Add Size to History"):
+        if st.button("➕ Add Size Entry"):
             st.session_state.sizes_history.append({
-                "Qty": input_size_qty,
-                "Order Number": input_order_num,
-                "Size": input_size,
-                "Date": str(input_size_date)
+                "Qty": input_size_qty, "Order Number": input_order_num, "Size": input_size, "Date": str(input_size_date)
             })
-            st.success("Size log entry recorded successfully!")
+            st.success("Size log entry recorded!")
+
+    # 🚚 SECÇÃO 3: REGISTO DE ENVIOS PARA INSTITUTOS COM TODOS OS DADOS (Coluna da Direita)
+    with col_ship:
+        st.subheader("🚚 Institute Shipment Log")
+        ship_order = st.text_input("ORDER NUMBER", value="ORD-2026", key="sh_ord")
+        ship_qty = st.number_input("QUANTITY SENT", min_value=1, value=1, key="sh_qty")
+        ship_size = st.text_input("SIZE", value="L", key="sh_sz")
+        ship_fabric = st.text_input("MAIN FABRIC", value="100% Polyester", key="sh_fab")
+        ship_date = st.date_input("SHIPMENT DATE", datetime.date.today(), key="sh_dt")
+        
+        # Check de status com Cores Diretas
+        ship_status = st.selectbox("APPROVAL STATUS", ["PENDING / EM AVALIAÇÃO", "🟩 APPROVED", "🟥 NOT APPROVED"], key="sh_st")
+
+        if st.button("➕ Add Shipment to Institute"):
+            st.session_state.institute_shipments.append({
+                "Order": ship_order,
+                "Qty Sent": ship_qty,
+                "Size": ship_size,
+                "Main Fabric": ship_fabric,
+                "Date": str(ship_date),
+                "Status": ship_status
+            })
+            st.success("Shipment registered successfully!")
 
     st.markdown("---")
-    st.subheader("📋 History of Size Production Log (Size)")
+    # EXIBIÇÃO DO HISTÓRICO DE TAMANHOS DE PRODUÇÃO
+    st.subheader("📋 Independent Size History")
     if st.session_state.sizes_history:
         st.dataframe(st.session_state.sizes_history, use_container_width=True)
         if st.button("🗑️ Clear Size History"):
             st.session_state.sizes_history = []
             st.rerun()
     else:
-        st.info("No sizes logged in history yet.")
+        st.info("No size production logged yet.")
 
-# ================= TAB 5: SAMPLE MOCKUPS =================
-with tab5:
-    st.header("Sample Mockups Details")
-    mockup_article = st.text_input("ARTICLE OF MOCKUPS", value=mockup_article)
-    mockups_ready = st.selectbox("MOCK-UPS READY Status", status_options, index=0)
-    fabric_used = st.text_input("FABRIC USED", value=fabric_used)
-    roll_number = st.text_input("ROLL NUMBER", value=roll_number)
-    fabric_number = st.text_input("FABRIC NUMBER", value=fabric_number)
-    date_sent_lab = st.date_input("WHEN WAS IT SENT TO LABORATORY?", value=date_sent_lab)
-
-# ================= TAB 6: PREVIEW & FINALISATION =================
-with tab6:
-    st.header("Review & Database Management")
-    
-    bom_revision = st.selectbox("BOM REVISION", status_options, index=0)
-    m_chart_revision = st.selectbox("MEASUREMENT CHART REVISION", status_options, index=0)
-    care_label = st.selectbox("CARE LABEL", status_options, index=0)
-    cert_docs = st.selectbox("CERTIFICATES DOCS ARCHIVE", status_options, index=0)
-    inspec_report = st.selectbox("INSPECTION REPORT SAVED IN FOLDER", status_options, index=0)
-    
     st.markdown("---")
-    st.subheader("⚡ Quick Actions")
-    col_db, col_csv = st.columns(2)
-    
-    selected_institutes = []
-    if inst_oeti: selected_institutes.append("OETI")
-    if inst_testex: selected_institutes.append("TESTEX")
-    if inst_hohenstein: selected_institutes.append("HOHENSTEIN")
-    institutes_text = ", ".join(selected_institutes) if selected_institutes else "None selected"
-
-    sizes_text_summary = ""
-    if st.session_state.sizes_history:
-        for idx, sz in enumerate(st.session_state.sizes_history):
-            sizes_text_summary += f" [Size Entry #{idx+1}: Qty: {sz['Qty']}, Order: {sz['Order Number']}, Size: {sz['Size']}, Date: {sz['Date']}]"
-    else:
-        sizes_text_summary = "No sizes logged."
-
-    lines = []
+    # EXIBIÇÃO E CONTABILIZADOR CRONOLÓGICO DE ENVIOS SOLICITADO
+    st.subheader("🚚 History of Registered Institute Shipments")
+    if st.session_state.institute_shipments:
+        # Calcular a soma total das peças enviadas
+        total_pieces_sent = sum(item["Qty Sent"] for item in st.session_state.institute_shipments)
+        st.metric(label="📊 Total Pieces Sent to Institutes", value=f"{total_pieces_sent} units")
+        

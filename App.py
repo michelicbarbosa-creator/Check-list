@@ -9,13 +9,13 @@ st.set_page_config(layout="wide", page_title="OEKO-Tex Master Certification Syst
 # 1. DATABASE MANAGEMENT (PERMANENT SQLITE)
 # ==========================================
 def connect_db():
-    return sqlite3.connect("oeko_tex_isolated_tabs_v25.db")
+    return sqlite3.connect("oeko_tex_master_v26.db")
 
 def initialize_db():
     conn = connect_db()
     cursor = conn.cursor()
     
-    # Projects Header Table
+    # Projects Header Table (With Institute column)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT, project_name TEXT UNIQUE,
@@ -31,7 +31,7 @@ def initialize_db():
         )
     """)
     
-    # Component Matrix Table for Box 1 & Box 3
+    # Component Matrix Table for Box 1 & Box 3 (With Size column)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS production_components (
             id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER,
@@ -41,7 +41,7 @@ def initialize_db():
         )
     """)
     
-    # Consolidated Final Table (Junta tudo na BOX 5)
+    # Consolidated Final Table (Box 5 Master Integration)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS consolidated_projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER,
@@ -88,7 +88,7 @@ with col_p2:
 if not df_projects.empty and selected_project != "No projects found":
     df_filtered_proj = df_projects[df_projects["project_name"] == selected_project]
     if not df_filtered_proj.empty:
-        proj_row = df_filtered_proj.iloc
+        proj_row = df_filtered_proj.iloc[0]
         active_project_id = int(proj_row["id"])
     else: active_project_id = 0
 else: active_project_id = 0
@@ -124,7 +124,7 @@ detailed_categories = ["Fabric", "Zipper", "Lining", "Elastic", "Button", "Threa
 today = date.today()
 
 # ==========================================
-# 2. PROJECT HEADER (SALVA ISOLADO NO BOTÃO)
+# 2. FIRST BLOCK: HEADER & INSTITUTE CHOICE
 # ==========================================
 if active_project_id > 0:
     with st.expander("📝 Project Header & Certification Status", expanded=True):
@@ -140,12 +140,13 @@ if active_project_id > 0:
                 lista_protocolos = ["New Certification", "Application for extension", "Re-certification"]
                 status_salvo = proj_row["protocol_type"] if "protocol_type" in proj_row and proj_row["protocol_type"] else "New Certification"
                 index_proto = lista_protocolos.index(status_salvo) if status_salvo in lista_protocolos else 0
-                tipo_protocolo = st.radio("Select Certification Status for this Project:", lista_protocolos, index=index_proto)
+                tipo_protocolo = st.radio("Select Certification Status:", lista_protocolos, index=index_proto)
                 
+                # SELETOR DE INSTITUTOS ADICIONADO AO PRIMEIRO BLOCO
                 lista_institutos = ["OETI", "Testex", "Hohenstein"]
                 instituto_salvo = proj_row["institute"] if "institute" in proj_row and proj_row["institute"] else "OETI"
                 index_inst = lista_institutos.index(instituto_salvo) if instituto_salvo in lista_institutos else 0
-                tipo_instituto = st.selectbox("Select Active Certification Institute:", lista_institutos, index=index_inst)
+                tipo_instituto = st.selectbox("Select Certification Institute:", lista_institutos, index=index_inst)
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.form_submit_button("Save Header Data (Isolated)"):
@@ -153,18 +154,18 @@ if active_project_id > 0:
                 conn.execute("UPDATE projects SET article_number=?, model_no=?, bom_status=?, protocol_type=?, institute=? WHERE id=?", (h_article, h_model, h_bom, tipo_protocolo, tipo_instituto, active_project_id))
                 conn.commit()
                 conn.close()
-                st.success("Header records updated independently!")
+                st.success("Header records synchronized independently!")
                 st.rerun()
 
 # ==========================================
-# 3. MAIN TABS (ISOLATED FLOWS)
+# 3. TABS STRUCTURE (SAVING SEPARATELY)
 # ==========================================
 st.markdown("---")
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📦 1: Expiry & Add", "📑 2: Documentation", "🛠️ 3: Database Logs", "👕 4: Samples & Mock-ups", "🏁 5: Finalisation"
 ])
 
-# --- TAB 1 (SALVA ISOLADO NO BOTÃO 1) ---
+# --- BOX 1: ISOLATED MATERIAL ADD ---
 with tab1:
     st.header("1️⃣ BOX 1: Certificate Expiry Control")
     alarms_triggered = []
@@ -187,4 +188,3 @@ with tab1:
         st.markdown("#### 📥 Register New Component Document (Isolated)")
         c1, c2, c3 = st.columns(3)
         with c1:
-            c_cat = st.selectbox("Component Option", detailed_categories, key="b1_cat")

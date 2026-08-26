@@ -121,11 +121,11 @@ with tab3:
     saved_folder = st.selectbox("SAVED IN FOLDER", status_options, index=0)
     label_status = st.selectbox("LABEL", status_options, index=0)
 
-# ================= TAB 4: SAMPLE GARMENT (AS 3 SECÇÕES COMPLETAS E ORGANIZADAS) =================
+# ================= TAB 4: SAMPLE GARMENT (ORDEM DE CAMPOS AJUSTADA) =================
 with tab4:
     st.header("Sample Garment & Institute Shipment Tracking")
     
-    # ⚙️ SECÇÃO 1: STATUS CHECKLIST (Sempre ativa no topo)
+    # ⚙️ SECÇÃO 1: STATUS CHECKLIST
     st.subheader("⚙️ General Checklist Status")
     col_s1, col_s2, col_s3 = st.columns(3)
     with col_s1:
@@ -140,21 +140,21 @@ with tab4:
     st.markdown("---")
     col_sizes, col_ship = st.columns(2)
     
-    # 📦 SECÇÃO 2: PRODUCTION SIZES (Coluna da Esquerda)
+    # 📦 SECÇÃO 2: PRODUCTION SIZES (Ordem invertida: Order Number em 1º, Quantity em 2º)
     with col_sizes:
         st.subheader("📦 Production Size Log (Size)")
-        input_size_qty = st.number_input("QUANTITY (Qty)", min_value=1, value=1, key="sz_qty")
         input_order_num = st.text_input("ORDER NUMBER (Order No.)", value="ORD-2026", key="sz_ord")
+        input_size_qty = st.number_input("QUANTITY (Qty)", min_value=1, value=1, key="sz_qty")
         input_size = st.text_input("SIZE (e.g., M, L, 42)", value="M", key="sz_val")
         input_size_date = st.date_input("PRODUCTION DATE", datetime.date.today(), key="sz_date")
         
         if st.button("➕ Add Size Entry"):
             st.session_state.sizes_history.append({
-                "Qty": input_size_qty, "Order Number": input_order_num, "Size": input_size, "Date": str(input_size_date)
+                "Order Number": input_order_num, "Qty": input_size_qty, "Size": input_size, "Date": str(input_size_date)
             })
             st.success("Size log entry recorded!")
 
-    # 🚚 SECÇÃO 3: REGISTO DE ENVIOS PARA INSTITUTOS COM TODOS OS DADOS (Coluna da Direita)
+    # 🚚 SECÇÃO 3: REGISTO DE ENVIOS PARA INSTITUTOS
     with col_ship:
         st.subheader("🚚 Institute Shipment Log")
         ship_order = st.text_input("ORDER NUMBER", value="ORD-2026", key="sh_ord")
@@ -162,8 +162,6 @@ with tab4:
         ship_size = st.text_input("SIZE", value="L", key="sh_sz")
         ship_fabric = st.text_input("MAIN FABRIC", value="100% Polyester", key="sh_fab")
         ship_date = st.date_input("SHIPMENT DATE", datetime.date.today(), key="sh_dt")
-        
-        # Check de status com Cores Diretas
         ship_status = st.selectbox("APPROVAL STATUS", ["PENDING / EM AVALIAÇÃO", "🟩 APPROVED", "🟥 NOT APPROVED"], key="sh_st")
 
         if st.button("➕ Add Shipment to Institute"):
@@ -189,10 +187,12 @@ with tab4:
         st.info("No size production logged yet.")
 
     st.markdown("---")
-    # EXIBIÇÃO E CONTABILIZADOR CRONOLÓGICO DE ENVIOS SOLICITADO
+    # EXIBIÇÃO E CONTABILIZADOR CRONOLÓGICO DE ENVIOS
     st.subheader("🚚 History of Registered Institute Shipments")
     if st.session_state.institute_shipments:
-        # Calcular a soma total das peças enviadas
         total_pieces_sent = sum(item["Qty Sent"] for item in st.session_state.institute_shipments)
         st.metric(label="📊 Total Pieces Sent to Institutes", value=f"{total_pieces_sent} units")
         
+        st.dataframe(st.session_state.institute_shipments, use_container_width=True)
+        if st.button("🗑️ Clear Shipment History"):
+            st.session_state.institute_shipments = []

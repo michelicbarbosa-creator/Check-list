@@ -1,3 +1,4 @@
+
 import streamlit as st
 import datetime
 import sqlite3
@@ -19,7 +20,7 @@ status_options = [
     "🟩 GREEN / OK / TERMINADO"
 ]
 
-# CRIAÇÃO DOS VALORES PADRÃO (Resolve o erro da linha 202 definitivamente)
+# CRIAÇÃO DOS VALORES PADRÃO (Garante a existência global das variáveis)
 project_name = "Project Alpha"
 folder_number = "F-2026-001"
 model_name = "Standard V1"
@@ -129,7 +130,7 @@ with tab4:
     col_made, col_log = st.columns(2)
     
     with col_made:
-        samples_made = st.number_input("QUANTITY OF SAMPLES MADE", min_value=0, value=samples_made)
+        samples_made = st.number_input("QUANTITY OF SAMPLES MADE", min_value=0, value=1)
         date_made = st.date_input("DATE SAMPLES MADE", value=date_made)
     
     with col_log:
@@ -193,13 +194,19 @@ with tab6:
     if inst_hohenstein: selected_institutes.append("HOHENSTEIN")
     institutes_text = ", ".join(selected_institutes) if selected_institutes else "None selected"
 
-    # Montagem estável das linhas do relatório
+    # Montagem estável das linhas do relatório (Linha 197 Corrigida e Alinhada)
     lines = [
         "CERTIFICATION CHECKLIST REPORT\tVALUE / STATUS",
         "==================================================\t====================",
-        f"Project Name:\t{project_name}", f"Folder Number:\t{folder_number}",
-        f"Model Name:\t{model_name}", f"Article Name:\t{article_name_t1}",
-        f"Certification Type:\t{cert_type}", f"Target Institute(s):\t{institutes_text}",
-        f"BOM Attached:\t{'YES' if add_bom else 'NO'}", f"BOM Notes:\t{bom_notes}",
-        f"SPLAG:\t{t_splag}", f"Confirmed:\t{t_confirmed}", f"Measurement Chart:\t{m_chart}",
-        f"BOM Revision:\t{bom_revision}", f"Care Label:\t{care_label}", f"Inspection Report:\t{inspec_report}",
+        f"Project Name:\t{project_name}",
+        f"Folder Number:\t{folder_number}",
+        f"Model Name:\t{model_name}",
+        f"Article Name:\t{article_name_t1}",
+        f"Certification Type:\t{cert_type}",
+        f"Target Institute(s):\t{institutes_text}",
+        f"BOM Attached:\t{'YES' if add_bom else 'NO'}",
+        f"BOM Notes:\t{bom_notes}",
+        f"SPLAG:\t{t_splag}",
+        f"Confirmed:\t{t_confirmed}",
+        f"Measurement Chart:\t{m_chart}",
+        f"Measurement Check:\t{m_check}",

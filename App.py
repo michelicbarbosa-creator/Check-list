@@ -7,7 +7,7 @@ import json
 st.set_page_config(page_title="Certification Checklist", layout="wide")
 st.title("📋 Certification Checklist Program")
 
-# 1. MEMÓRIA GLOBAL DO STREAMLIT (Garante que os dados não somem ao mudar de aba)
+# 1. INICIALIZAÇÃO DE MEMÓRIA GLOBAL (Garante que nenhuma variável dê erro de leitura)
 if 'materials_list' not in st.session_state:
     st.session_state.materials_list = []
 if 'oeti_shipments' not in st.session_state:
@@ -19,6 +19,20 @@ status_options = [
     "🟩 GREEN / OK / TERMINADO"
 ]
 
+# CRIAÇÃO DOS VALORES PADRÃO (Resolve o erro da linha 202 definitivamente)
+project_name = "Project Alpha"
+folder_number = "F-2026-001"
+model_name = "Standard V1"
+article_name_t1 = "Premium Cotton Fabric"
+cert_type = "NEW CERTIFICATION"
+inst_oeti, inst_testex, inst_hohenstein = False, False, False
+add_bom, bom_notes = False, ""
+t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+samples_made, date_made = 1, datetime.date.today()
+mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options[0], "", "", "", datetime.date.today()
+bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+
 def check_expiration(exp_date):
     today = datetime.date.today()
     if exp_date < today:
@@ -28,7 +42,7 @@ def check_expiration(exp_date):
     else:
         return "🟩 Valid Document", "success"
 
-# --- ESTRUTURA DAS 6 ABAS TRADICIONAIS NA TELA ---
+# --- ESTRUTURA DAS 6 ABAS NA TELA ---
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "1. Project Info", "2. Documents (Multi-Material)", "3. Technical Documentation", 
     "4. Sample Garment (Multi-Shipment)", "5. Sample Mockups", "6. Preview & Finalisation"
@@ -37,10 +51,10 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 # ================= TAB 1: PROJECT INFO =================
 with tab1:
     st.header("Project Identification")
-    project_name = st.text_input("PROJECT NAME", value="Project Alpha")
-    folder_number = st.text_input("NUMBER OF THE PROJECT FOLDER", value="F-2026-001")
-    model_name = st.text_input("MODEL", value="Standard V1")
-    article_name_t1 = st.text_input("ARTICLE", value="Premium Cotton Fabric")
+    project_name = st.text_input("PROJECT NAME", value=project_name)
+    folder_number = st.text_input("NUMBER OF THE PROJECT FOLDER", value=folder_number)
+    model_name = st.text_input("MODEL", value=model_name)
+    article_name_t1 = st.text_input("ARTICLE", value=article_name_t1)
     cert_type = st.radio("CERTIFICATION TYPE", ["NEW CERTIFICATION", "APPLICATION OF EXTENSION", "RECERTIFICATION"])
     
     st.markdown("---")
@@ -51,7 +65,7 @@ with tab1:
     
     st.markdown("---")
     add_bom = st.checkbox("ADD BOM (Bill of Materials)")
-    bom_notes = st.text_area("BOM NOTES / REVISIONS (e.g., BOM 1 for main fabric, BOM 2 for lining)", value="")
+    bom_notes = st.text_area("BOM NOTES / REVISIONS (e.g., BOM 1 for main fabric, BOM 2 for lining)", value=bom_notes)
 
 # ================= TAB 2: DOCUMENTS =================
 with tab2:
@@ -115,8 +129,8 @@ with tab4:
     col_made, col_log = st.columns(2)
     
     with col_made:
-        samples_made = st.number_input("QUANTITY OF SAMPLES MADE", min_value=0, value=1)
-        date_made = st.date_input("DATE SAMPLES MADE")
+        samples_made = st.number_input("QUANTITY OF SAMPLES MADE", min_value=0, value=samples_made)
+        date_made = st.date_input("DATE SAMPLES MADE", value=date_made)
     
     with col_log:
         st.write("Record a specific shipment batch to OETI with its status:")
@@ -151,14 +165,14 @@ with tab4:
 # ================= TAB 5: SAMPLE MOCKUPS =================
 with tab5:
     st.header("Sample Mockups Details")
-    mockup_article = st.text_input("ARTICLE OF MOCKUPS", value="Mock-UX Fabric")
+    mockup_article = st.text_input("ARTICLE OF MOCKUPS", value=mockup_article)
     mockups_ready = st.selectbox("MOCK-UPS READY Status", status_options, index=0)
-    fabric_used = st.text_input("FABRIC USED")
-    roll_number = st.text_input("ROLL NUMBER")
-    fabric_number = st.text_input("FABRIC NUMBER")
-    date_sent_lab = st.date_input("WHEN WAS IT SENT TO LABORATORY?")
+    fabric_used = st.text_input("FABRIC USED", value=fabric_used)
+    roll_number = st.text_input("ROLL NUMBER", value=roll_number)
+    fabric_number = st.text_input("FABRIC NUMBER", value=fabric_number)
+    date_sent_lab = st.date_input("WHEN WAS IT SENT TO LABORATORY?", value=date_sent_lab)
 
-# ================= TAB 6: PREVIEW & FINALISATION (BLINDADO E REESTRUTURADO) =================
+# ================= TAB 6: PREVIEW & FINALISATION =================
 with tab6:
     st.header("Review & Database Management")
     
@@ -169,39 +183,23 @@ with tab6:
     inspec_report = st.selectbox("INSPECTION REPORT SAVED IN FOLDER", status_options, index=0)
     
     st.markdown("---")
-    
-    # ⚡ OS BOTÕES FORAM MOVIDOS PARA O TOPO DAS AÇÕES PARA GARANTIR VISIBILIDADE CRÍTICA
     st.subheader("⚡ Quick Actions")
     col_db, col_csv = st.columns(2)
     
-    # Geração segura do relatório para os botões usar em memória plano
+    # Processamento do texto dos institutos
     selected_institutes = []
     if inst_oeti: selected_institutes.append("OETI")
     if inst_testex: selected_institutes.append("TESTEX")
     if inst_hohenstein: selected_institutes.append("HOHENSTEIN")
     institutes_text = ", ".join(selected_institutes) if selected_institutes else "None selected"
 
+    # Montagem estável das linhas do relatório
     lines = [
         "CERTIFICATION CHECKLIST REPORT\tVALUE / STATUS",
+        "==================================================\t====================",
         f"Project Name:\t{project_name}", f"Folder Number:\t{folder_number}",
         f"Model Name:\t{model_name}", f"Article Name:\t{article_name_t1}",
         f"Certification Type:\t{cert_type}", f"Target Institute(s):\t{institutes_text}",
         f"BOM Attached:\t{'YES' if add_bom else 'NO'}", f"BOM Notes:\t{bom_notes}",
         f"SPLAG:\t{t_splag}", f"Confirmed:\t{t_confirmed}", f"Measurement Chart:\t{m_chart}",
-        f"BOM Revision:\t{bom_revision}", f"Care Label:\t{care_label}", f"Inspection Report:\t{inspec_report}"
-    ]
-    preview_text = "\n".join(lines)
-    
-    with col_db:
-        if st.button("💾 Save Project to Database"):
-            try:
-                conn = sqlite3.connect('/tmp/checklist.db')
-                cursor = conn.cursor()
-                cursor.execute("CREATE TABLE IF NOT EXISTS secure_projects (id INTEGER PRIMARY KEY AUTOINCREMENT, p_name TEXT, f_num TEXT, s_at TEXT, json_data TEXT)")
-                
-                payload = {
-                    "p_name": project_name, "f_num": folder_number, "m_name": model_name, "art_t1": article_name_t1,
-                    "c_type": cert_type, "insts": institutes_text, "b_att": add_bom, "b_not": bom_notes,
-                    "splag": t_splag, "conf": t_confirmed, "chart": m_chart, "check": m_check, "fld": saved_folder, "lbl": label_status,
-                    "s_made": int(samples_made), "d_made": str(date_made), "m_art": mockup_article, "m_rdy": mockups_ready,
-                    "f_used": fabric_used, "r_num": roll_number, "f_num_pk": fabric_number, "d_lab": str(date_sent_lab),
+        f"BOM Revision:\t{bom_revision}", f"Care Label:\t{care_label}", f"Inspection Report:\t{inspec_report}",

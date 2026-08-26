@@ -12,6 +12,8 @@ if 'materials_list' not in st.session_state:
     st.session_state.materials_list = []
 if 'oeti_shipments' not in st.session_state:
     st.session_state.oeti_shipments = []
+if 'sizes_history' not in st.session_state:
+    st.session_state.sizes_history = []
 
 status_options = [
     "🟥 NO NEED", 
@@ -19,7 +21,7 @@ status_options = [
     "🟩 GREEN / OK / TERMINADO"
 ]
 
-# CRIAÇÃO DOS VALORES PADRÃO DA SESSÃO (Garante a existência das variáveis mesmo sem seleção)
+# CRIAÇÃO DOS VALORES PADRÃO DA SESSÃO
 if 'project_name' not in st.session_state: st.session_state.project_name = "Project Alpha"
 if 'folder_number' not in st.session_state: st.session_state.folder_number = "F-2026-001"
 if 'model_name' not in st.session_state: st.session_state.model_name = "Standard V1"
@@ -32,11 +34,11 @@ if 'add_bom' not in st.session_state: st.session_state.add_bom = False
 if 'bom_notes' not in st.session_state: st.session_state.bom_notes = ""
 
 # Variáveis padrão de status técnico
-t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
-s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options, status_options, status_options, status_options, status_options, status_options
+s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options, status_options, status_options, status_options, status_options
 samples_made, date_made = 1, datetime.date.today()
-mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options[0], "", "", "", datetime.date.today()
-bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options, "", "", "", datetime.date.today()
+bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options, status_options, status_options, status_options, status_options
 
 def check_expiration(exp_date):
     today = datetime.date.today()
@@ -120,7 +122,7 @@ with tab3:
     saved_folder = st.selectbox("SAVED IN FOLDER", status_options, index=0)
     label_status = st.selectbox("LABEL", status_options, index=0)
 
-# ================= TAB 4: SAMPLE GARMENT =================
+# ================= TAB 4: SAMPLE GARMENT (MÚLTIPLOS ENVIOS E HISTÓRICO "SIZE" SEPARADO) =================
 with tab4:
     st.header("Sample Garment Tracking")
     s_inprogress = st.selectbox("SAMPLE IN PROGRESS", status_options, index=0)
@@ -130,15 +132,15 @@ with tab4:
     s_excel = st.selectbox("SAMPLE ENTERED IN 'OVERVIEW OF REQUIRED SAMPLE (EXCEL FILE)'", status_options, index=0)
     
     st.markdown("---")
-    st.subheader("Production & Shipment Log")
-    col_made, col_log = st.columns(2)
+    col_samples, col_sizes = st.columns(2)
     
-    with col_made:
+    with col_samples:
+        st.subheader("🚚 Production & Shipment Log")
         samples_made = st.number_input("QUANTITY OF SAMPLES MADE", min_value=0, value=1)
         date_made = st.date_input("DATE SAMPLES MADE", value=date_made)
-    
-    with col_log:
-        st.write("Record a specific shipment batch to OETI with its status:")
+        
+        st.markdown("---")
+        st.write("Record a specific shipment batch to OETI:")
         shipment_qty = st.number_input("QUANTITY SENT IN THIS BATCH", min_value=1, value=1, key="ship_qty")
         shipment_date = st.date_input("DATE SENT", key="ship_date")
         ship_approval = st.selectbox("BATCH APPROVAL STATUS", ["PENDING / IN EVALUATION", "🟩 APPROVED", "🟥 NOT APPROVED"], key="ship_app")
@@ -157,6 +159,22 @@ with tab4:
             })
             st.success("Logged shipment batch!")
 
+    # SEÇÃO ATUALIZADA APENAS COMO "SIZE" AGRUPANDO OS DADOS PEDIDOS
+    with col_sizes:
+        st.subheader("📦 Production Size Log (Size)")
+        input_size_qty = st.number_input("QUANTITY (Qty)", min_value=1, value=1, key="sz_qty")
+        input_order_num = st.text_input("ORDER NUMBER (Order No.)", value="ORD-2026")
+        input_size = st.text_input("SIZE (e.g., S, M, L / 38, 40, 42)", value="M", key="sz_val")
+        
+        if st.button("➕ Add Size to History"):
+            st.session_state.sizes_history.append({
+                "Qty": input_size_qty,
+                "Order Number": input_order_num,
+                "Size": input_size,
+                "Logged At": str(datetime.date.today())
+            })
+            st.success("Size log entry recorded successfully!")
+
     st.markdown("---")
     st.subheader("🚚 History of Registered Shipments")
     if st.session_state.oeti_shipments:
@@ -167,31 +185,17 @@ with tab4:
     else:
         st.info("No shipments registered yet.")
 
+    st.markdown("---")
+    st.subheader("📋 Independent History (Size)")
+    if st.session_state.sizes_history:
+        st.dataframe(st.session_state.sizes_history, use_container_width=True)
+        if st.button("🗑️ Clear Size History"):
+            st.session_state.sizes_history = []
+            st.rerun()
+    else:
+        st.info("No sizes logged in history yet.")
+
 # ================= TAB 5: SAMPLE MOCKUPS =================
 with tab5:
     st.header("Sample Mockups Details")
     mockup_article = st.text_input("ARTICLE OF MOCKUPS", value=mockup_article)
-    mockups_ready = st.selectbox("MOCK-UPS READY Status", status_options, index=0)
-    fabric_used = st.text_input("FABRIC USED", value=fabric_used)
-    roll_number = st.text_input("ROLL NUMBER", value=roll_number)
-    fabric_number = st.text_input("FABRIC NUMBER", value=fabric_number)
-    date_sent_lab = st.date_input("WHEN WAS IT SENT TO LABORATORY?", value=date_sent_lab)
-
-# ================= TAB 6: PREVIEW & FINALISATION =================
-with tab6:
-    st.header("Review & Database Management")
-    
-    bom_revision = st.selectbox("BOM REVISION", status_options, index=0)
-    m_chart_revision = st.selectbox("MEASUREMENT CHART REVISION", status_options, index=0)
-    care_label = st.selectbox("CARE LABEL", status_options, index=0)
-    cert_docs = st.selectbox("CERTIFICATES DOCS ARCHIVE", status_options, index=0)
-    inspec_report = st.selectbox("INSPECTION REPORT SAVED IN FOLDER", status_options, index=0)
-    
-    st.markdown("---")
-    st.subheader("⚡ Quick Actions")
-    col_db, col_csv = st.columns(2)
-    
-    # Processamento do texto dos institutos
-    selected_institutes = []
-    if inst_oeti: selected_institutes.append("OETI")
-    if inst_testex: selected_institutes.append("TESTEX")

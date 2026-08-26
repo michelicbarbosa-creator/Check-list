@@ -19,19 +19,24 @@ status_options = [
     "🟩 GREEN / OK / TERMINADO"
 ]
 
-# CRIAÇÃO DOS VALORES PADRÃO (Garante a existência global das variáveis)
-project_name = "Project Alpha"
-folder_number = "F-2026-001"
-model_name = "Standard V1"
-article_name_t1 = "Premium Cotton Fabric"
-cert_type = "NEW CERTIFICATION"
-inst_oeti, inst_testex, inst_hohenstein = False, False, False
-add_bom, bom_notes = False, ""
-t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options, status_options, status_options, status_options, status_options, status_options
-s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options, status_options, status_options, status_options, status_options
+# CRIAÇÃO DOS VALORES PADRÃO DA SESSÃO (Garante a existência das variáveis mesmo sem seleção)
+if 'project_name' not in st.session_state: st.session_state.project_name = "Project Alpha"
+if 'folder_number' not in st.session_state: st.session_state.folder_number = "F-2026-001"
+if 'model_name' not in st.session_state: st.session_state.model_name = "Standard V1"
+if 'article_name_t1' not in st.session_state: st.session_state.article_name_t1 = "Premium Cotton Fabric"
+if 'cert_type' not in st.session_state: st.session_state.cert_type = "NEW CERTIFICATION"
+if 'inst_oeti' not in st.session_state: st.session_state.inst_oeti = False
+if 'inst_testex' not in st.session_state: st.session_state.inst_testex = False
+if 'inst_hohenstein' not in st.session_state: st.session_state.inst_hohenstein = False
+if 'add_bom' not in st.session_state: st.session_state.add_bom = False
+if 'bom_notes' not in st.session_state: st.session_state.bom_notes = ""
+
+# Variáveis padrão de status técnico
+t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
 samples_made, date_made = 1, datetime.date.today()
-mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options, "", "", "", datetime.date.today()
-bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options, status_options, status_options, status_options, status_options
+mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options[0], "", "", "", datetime.date.today()
+bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
 
 def check_expiration(exp_date):
     today = datetime.date.today()
@@ -51,21 +56,21 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 # ================= TAB 1: PROJECT INFO =================
 with tab1:
     st.header("Project Identification")
-    project_name = st.text_input("PROJECT NAME", value=project_name)
-    folder_number = st.text_input("NUMBER OF THE PROJECT FOLDER", value=folder_number)
-    model_name = st.text_input("MODEL", value=model_name)
-    article_name_t1 = st.text_input("ARTICLE", value=article_name_t1)
+    project_name = st.text_input("PROJECT NAME", value=st.session_state.project_name)
+    folder_number = st.text_input("NUMBER OF THE PROJECT FOLDER", value=st.session_state.folder_number)
+    model_name = st.text_input("MODEL", value=st.session_state.model_name)
+    article_name_t1 = st.text_input("ARTICLE", value=st.session_state.article_name_t1)
     cert_type = st.radio("CERTIFICATION TYPE", ["NEW CERTIFICATION", "APPLICATION OF EXTENSION", "RECERTIFICATION"])
     
     st.markdown("---")
     st.subheader("🏛️ TARGET CERTIFICATION INSTITUTE")
-    inst_oeti = st.checkbox("OETI")
-    inst_testex = st.checkbox("TESTEX")
-    inst_hohenstein = st.checkbox("HOHENSTEIN")
+    inst_oeti = st.checkbox("OETI", value=st.session_state.inst_oeti)
+    inst_testex = st.checkbox("TESTEX", value=st.session_state.inst_testex)
+    inst_hohenstein = st.checkbox("HOHENSTEIN", value=st.session_state.inst_hohenstein)
     
     st.markdown("---")
-    add_bom = st.checkbox("ADD BOM (Bill of Materials)")
-    bom_notes = st.text_area("BOM NOTES / REVISIONS (e.g., BOM 1 for main fabric, BOM 2 for lining)", value=bom_notes)
+    add_bom = st.checkbox("ADD BOM (Bill of Materials)", value=st.session_state.add_bom)
+    bom_notes = st.text_area("BOM NOTES / REVISIONS (e.g., BOM 1 for main fabric, BOM 2 for lining)", value=st.session_state.bom_notes)
 
 # ================= TAB 2: DOCUMENTS =================
 with tab2:
@@ -190,22 +195,3 @@ with tab6:
     selected_institutes = []
     if inst_oeti: selected_institutes.append("OETI")
     if inst_testex: selected_institutes.append("TESTEX")
-    if inst_hohenstein: selected_institutes.append("HOHENSTEIN")
-    institutes_text = ", ".join(selected_institutes) if selected_institutes else "None selected"
-
-    # MONTAGEM SEGURA SEM ERRO DE FECHAMENTO DE COCHETES (Linha 198 corrigida)
-    lines = [
-        "CERTIFICATION CHECKLIST REPORT\tVALUE / STATUS",
-        "==================================================\t====================",
-        "Project Name:\t" + str(project_name),
-        "Folder Number:\t" + str(folder_number),
-        "Model Name:\t" + str(model_name),
-        "Article Name:\t" + str(article_name_t1),
-        "Certification Type:\t" + str(cert_type),
-        "Target Institute(s):\t" + str(institutes_text),
-        "BOM Attached:\t" + ("YES" if add_bom else "NO"),
-        "BOM Notes:\t" + str(bom_notes),
-        "SPLAG:\t" + str(t_splag),
-        "Confirmed:\t" + str(t_confirmed),
-        "Measurement Chart:\t" + str(m_chart),
-        "Measurement Check:\t" + str(m_check),

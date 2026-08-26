@@ -1,4 +1,3 @@
-
 import streamlit as st
 import datetime
 import sqlite3
@@ -28,11 +27,11 @@ article_name_t1 = "Premium Cotton Fabric"
 cert_type = "NEW CERTIFICATION"
 inst_oeti, inst_testex, inst_hohenstein = False, False, False
 add_bom, bom_notes = False, ""
-t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
-s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+t_splag, t_confirmed, m_chart, m_check, saved_folder, label_status = status_options, status_options, status_options, status_options, status_options, status_options
+s_inprogress, s_revision, s_confirmed, s_sent_oeti, s_excel = status_options, status_options, status_options, status_options, status_options
 samples_made, date_made = 1, datetime.date.today()
-mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options[0], "", "", "", datetime.date.today()
-bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options[0], status_options[0], status_options[0], status_options[0], status_options[0]
+mockup_article, mockups_ready, fabric_used, roll_number, fabric_number, date_sent_lab = "", status_options, "", "", "", datetime.date.today()
+bom_revision, m_chart_revision, care_label, cert_docs, inspec_report = status_options, status_options, status_options, status_options, status_options
 
 def check_expiration(exp_date):
     today = datetime.date.today()
@@ -194,19 +193,19 @@ with tab6:
     if inst_hohenstein: selected_institutes.append("HOHENSTEIN")
     institutes_text = ", ".join(selected_institutes) if selected_institutes else "None selected"
 
-    # Montagem estável das linhas do relatório (Linha 197 Corrigida e Alinhada)
+    # MONTAGEM SEGURA SEM ERRO DE FECHAMENTO DE COCHETES (Linha 198 corrigida)
     lines = [
         "CERTIFICATION CHECKLIST REPORT\tVALUE / STATUS",
         "==================================================\t====================",
-        f"Project Name:\t{project_name}",
-        f"Folder Number:\t{folder_number}",
-        f"Model Name:\t{model_name}",
-        f"Article Name:\t{article_name_t1}",
-        f"Certification Type:\t{cert_type}",
-        f"Target Institute(s):\t{institutes_text}",
-        f"BOM Attached:\t{'YES' if add_bom else 'NO'}",
-        f"BOM Notes:\t{bom_notes}",
-        f"SPLAG:\t{t_splag}",
-        f"Confirmed:\t{t_confirmed}",
-        f"Measurement Chart:\t{m_chart}",
-        f"Measurement Check:\t{m_check}",
+        "Project Name:\t" + str(project_name),
+        "Folder Number:\t" + str(folder_number),
+        "Model Name:\t" + str(model_name),
+        "Article Name:\t" + str(article_name_t1),
+        "Certification Type:\t" + str(cert_type),
+        "Target Institute(s):\t" + str(institutes_text),
+        "BOM Attached:\t" + ("YES" if add_bom else "NO"),
+        "BOM Notes:\t" + str(bom_notes),
+        "SPLAG:\t" + str(t_splag),
+        "Confirmed:\t" + str(t_confirmed),
+        "Measurement Chart:\t" + str(m_chart),
+        "Measurement Check:\t" + str(m_check),

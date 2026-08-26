@@ -64,7 +64,7 @@ with tab1:
     cert_type = st.radio("CERTIFICATION TYPE", ["NEW CERTIFICATION", "APPLICATION OF EXTENSION", "RECERTIFICATION"])
     
     st.markdown("---")
-    st.subheader("🏛️ TARGET CERTIFICATION INSTITUTE")
+    st.subheader("🏛️ CERTIFICATION INSTITUTE")
     inst_oeti = st.checkbox("OETI", value=st.session_state.inst_oeti)
     inst_testex = st.checkbox("TESTEX", value=st.session_state.inst_testex)
     inst_hohenstein = st.checkbox("HOHENSTEIN", value=st.session_state.inst_hohenstein)
@@ -142,8 +142,8 @@ with tab4:
     
     # 📦 SECÇÃO 2: PRODUCTION SIZES (Ordem invertida: Order Number em 1º, Quantity em 2º)
     with col_sizes:
-        st.subheader("📦 Production Size Log (Size)")
-        input_order_num = st.text_input("ORDER NUMBER (Order No.)", value="ORD-2026", key="sz_ord")
+        st.subheader("📦 Production ")
+        input_order_num = st.text_input("ORDER NUMBER ", value="ORD-2026", key="sz_ord")
         input_size_qty = st.number_input("QUANTITY (Qty)", min_value=1, value=1, key="sz_qty")
         input_size = st.text_input("SIZE (e.g., M, L, 42)", value="M", key="sz_val")
         input_size_date = st.date_input("PRODUCTION DATE", datetime.date.today(), key="sz_date")
@@ -156,7 +156,7 @@ with tab4:
 
     # 🚚 SECÇÃO 3: REGISTO DE ENVIOS PARA INSTITUTOS
     with col_ship:
-        st.subheader("🚚 Institute Shipment Log")
+        st.subheader("🚚 Institute Shipment ")
         ship_order = st.text_input("ORDER NUMBER", value="ORD-2026", key="sh_ord")
         ship_qty = st.number_input("QUANTITY SENT", min_value=1, value=1, key="sh_qty")
         ship_size = st.text_input("SIZE", value="L", key="sh_sz")

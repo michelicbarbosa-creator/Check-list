@@ -197,4 +197,4 @@ with tab6:
     else:
         sizes_text_summary = "No sizes logged."
 
-    lines = [
+    lines = []

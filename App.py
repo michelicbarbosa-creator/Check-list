@@ -3,210 +3,179 @@ import pandas as pd
 import sqlite3
 from datetime import date, datetime
 
-st.set_page_config(layout="wide", page_title="Sistema OEKO-Tex com Banco de Dados")
+st.set_page_config(layout="wide", page_title="OEKO-Tex Master Certification System 2026")
 
 # ==========================================
-# 1. CONEXÃO E CRIAÇÃO DO BANCO DE DADOS (SQLITE)
+# 1. DATABASE MANAGEMENT (PERMANENT SQLITE)
 # ==========================================
-def conectar_banco():
-    conn = sqlite3.connect("gestor_certificacoes.db")
-    return conn
+def connect_db():
+    return sqlite3.connect("oeko_tex_institutes_v23.db")
 
-def inicializar_banco():
-    conn = conectar_banco()
+def initialize_db():
+    conn = connect_db()
     cursor = conn.cursor()
-    
-    # Tabela 1: Informações Gerais do Projeto
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS projetos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT, artigo TEXT, modelo TEXT, bom TEXT
+        CREATE TABLE IF NOT EXISTS projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, project_name TEXT UNIQUE,
+            article_number TEXT, model_no TEXT, bom_status TEXT, protocol_type TEXT, institute TEXT
         )
     """)
-    
-    # Tabela 2: Checklist Fixo de Processos
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS checklist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fase TEXT, tarefa TEXT, concluido INTEGER
+        CREATE TABLE IF NOT EXISTS project_checklist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER,
+            box_num TEXT, phase TEXT, task TEXT, status TEXT, last_update TEXT
         )
     """)
-    
-    # Tabela 3: Componentes, Amostras e Certificados
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS componentes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            categoria TEXT, nome TEXT, documento TEXT, amostra TEXT,
-            data_envio TEXT, aprovado TEXT, tabela_medidas TEXT,
-            medidas_aprovadas TEXT, tamanho_amostra TEXT,
-            num_certificado TEXT, expira TEXT, notas TEXT
+        CREATE TABLE IF NOT EXISTS production_components (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER,
+            category TEXT, material_name TEXT, doc_type TEXT, certificate_num TEXT, expiry_date TEXT,
+            mockup_status TEXT, mockup_approved TEXT, production_order TEXT, related_articles TEXT,
+            seam_ready_qty INTEGER, seam_sent_oeti_qtd INTEGER, comments TEXT
         )
     """)
-    
-    # Inserir dados iniciais na checklist caso esteja vazia
-    cursor.execute("SELECT COUNT(*) FROM checklist")
-    if cursor.fetchone()[0] == 0:
-        tarefas_iniciais = [
-            ("Documentação", "Application form OETI", 0),
-            ("Documentação", "Technical document OETI", 0),
-            ("Documentação", "Technical documentation SPLAG", 0),
-            ("Finalização", "Technical sheet revision", 0),
-            ("Finalização", "BOM revision", 0),
-            ("Finalização", "Care label revision", 0)
-        ]
-        cursor.executemany("INSERT INTO checklist (fase, tarefa, concluido) VALUES (?, ?, ?)", tarefas_iniciais)
-        
-    # Inserir projeto padrão caso esteja vazio
-    cursor.execute("SELECT COUNT(*) FROM projetos")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("INSERT INTO projetos (nome, artigo, modelo, bom) VALUES (?, ?, ?, ?)", 
-                       ("35. ta-d winter + rain parkas", "409 130 - 409 110", "4100-M-ZR-ZH-U", "BOM-L + BOM-C"))
-        
+    cursor.execute("SELECT COUNT(*) FROM projects")
+    if cursor.fetchone() == 0:
+        cursor.execute("""
+            INSERT INTO projects (project_name, article_number, model_no, bom_status, protocol_type, institute) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, ("35. ta-d winter + rain parkas", "409 130 - 409 110", "4100-M-ZR-ZH-U", "BOM-L + BOM-C", "New Certification", "OETI"))
     conn.commit()
     conn.close()
 
-inicializar_banco()
+initialize_db()
+conn = connect_db()
+df_projects = pd.read_sql_query("SELECT * FROM projects", conn)
 
-# ==========================================
-# 2. CONFIGURAÇÕES VISUAIS DA BARRA LATERAL
-# ==========================================
-st.sidebar.header("⚙️ Configurações do Banco")
-dias_aviso = st.sidebar.number_input("Dias de antecedência para Alerta", min_value=5, max_value=120, value=30)
+col_p1, col_p2 = st.columns(2)
+with col_p1:
+    selected_project = st.selectbox("Active Project Selection", df_projects["project_name"].tolist() if not df_projects.empty else ["No projects found"])
+with col_p2:
+    with st.popover("➕ Create New Project"):
+        with st.form("add_project_form", clear_on_submit=True):
+            p_name = st.text_input("Project Name / Code")
+            if st.form_submit_button("Create Baseline"):
+                if p_name:
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("INSERT INTO projects (project_name, article_number, model_no, bom_status, protocol_type, institute) VALUES (?, '', '', '', 'New Certification', 'OETI')", (p_name,))
+                        conn.commit()
+                        st.success("Project generated!")
+                        st.rerun()
+                    except sqlite3.IntegrityError:
+                        st.error("Project name already exists.")
 
-# ==========================================
-# 3. LEITURA DOS DADOS DO BANCO DE DADOS
-# ==========================================
-conn = conectar_banco()
-df_projeto = pd.read_sql_query("SELECT * FROM projetos LIMIT 1", conn)
-df_checklist = pd.read_sql_query("SELECT * FROM checklist", conn)
-df_componentes = pd.read_sql_query("SELECT * FROM componentes", conn)
-conn.close()
+if not df_projects.empty and selected_project != "No projects found":
+    df_filtered_proj = df_projects[df_projects["project_name"] == selected_project]
+    if not df_filtered_proj.empty:
+        proj_row = df_filtered_proj.iloc[0]
+        active_project_id = int(proj_row["id"])
+    else: active_project_id = 0
+else: active_project_id = 0
 
-# ==========================================
-# 4. CABEÇALHO DO PROJETO (ATUALIZA NO BANCO)
-# ==========================================
-st.title("💾 Sistema com Persistência em Banco de Dados (SQLite)")
-if not df_projeto.empty:
-    st.subheader("Informações Gerais do Projeto")
-    with st.form("form_projeto"):
-        c1, c2, c3, c4 = st.columns(4)
-        novo_nome = c1.text_input("Nome do Projeto", df_projeto.iloc[0]["nome"])
-        novo_artigo = c2.text_input("Artigo", df_projeto.iloc[0]["artigo"])
-        novo_modelo = c3.text_input("Modelo", df_projeto.iloc[0]["modelo"])
-        novo_bom = c4.text_input("BOM Status", df_projeto.iloc[0]["bom"])
-        
-        if st.form_submit_button("Atualizar Informações do Projeto"):
-            conn = conectar_banco()
-            conn.execute("UPDATE projetos SET nome=?, artigo=?, modelo=?, bom=? WHERE id=1", 
-                         (novo_nome, novo_artigo, novo_modelo, novo_bom))
-            conn.commit()
-            conn.close()
-            st.success("Dados do projeto atualizados no Banco de Dados!")
-            st.rerun()
-
-# ==========================================
-# 5. GERENCIAMENTO DE ALERTAS DE PRAZO
-# ==========================================
-hoje = date.today()
-alertas_criticos = []
-alertas_aviso = []
-
-if not df_componentes.empty:
-    for idx, row in df_componentes.iterrows():
-        data_fim = datetime.strptime(row["expira"], "%Y-%m-%d").date()
-        dias_restantes = (data_fim - hoje).days
-        
-        if dias_restantes < 0:
-            alertas_criticos.append(f"O certificado **{row['num_certificado']}** ({row['nome']}) expirou há {abs(dias_restantes)} dias!")
-        elif dias_restantes <= dias_aviso:
-            alertas_aviso.append(f"O documento do item **{row['nome']}** ({row['categoria']}) vence em {dias_restantes} dias.")
-
-if alertas_criticos or alertas_aviso:
-    st.subheader("🔔 Alertas de Vencimento (Filtro do Banco)")
-    for erro in alertas_criticos: st.error(erro)
-    for aviso in alertas_aviso: st.warning(aviso)
-    st.markdown("---")
-
-# ==========================================
-# 6. MÓDULO 1: CHECKLIST DE PROCESSOS
-# ==========================================
-st.header("1. Checklist de Processos e Validações")
-col_chk1, col_chk2 = st.columns(2)
-
-conn = conectar_banco()
-with col_chk1:
-    st.markdown("### 📑 Documentação")
-    for idx, row in df_checklist[df_checklist["fase"] == "Documentação"].iterrows():
-        id_tarefa = row["id"]
-        status_atual = bool(row["concluido"])
-        novo_status = st.checkbox(row["tarefa"], value=status_atual, key=f"t_{id_tarefa}")
-        if novo_status != status_atual:
-            conn.execute("UPDATE checklist SET concluido=? WHERE id=?", (int(novo_status), id_tarefa))
-            conn.commit()
-
-with col_chk2:
-    st.markdown("### 🏁 Finalização")
-    for idx, row in df_checklist[df_checklist["fase"] == "Finalização"].iterrows():
-        id_tarefa = row["id"]
-        status_atual = bool(row["concluido"])
-        novo_status = st.checkbox(row["tarefa"], value=status_atual, key=f"t_{id_tarefa}")
-        if novo_status != status_atual:
-            conn.execute("UPDATE checklist SET concluido=? WHERE id=?", (int(novo_status), id_tarefa))
-            conn.commit()
-conn.close()
-
-st.markdown("---")
-
-# ==========================================
-# 7. MÓDULO 2: CADASTRO DE MATERIAIS NO BANCO
-# ==========================================
-st.header("2. Painel de Componentes, Amostras e Certificados")
-
-with st.form("form_componente_db", clear_on_submit=True):
-    st.markdown("##### ➕ Adicionar Registro Permanente no Banco de Dados")
-    f1, f2, f3, f4, f5 = st.columns(5)
-    with f1:
-        cat = f1.selectbox("Categoria", ["Tecido", "Reflex", "Elastic", "Buttons", "Extras"])
-        nome_material = f1.text_input("Nome do Componente")
-    with f2:
-        doc_tipo = f2.selectbox("Tipo Documento", ["OEKO-Tex Standard 100", "Test Report Fabric", "Test Report Accessories"])
-        status_amostra = f2.selectbox("Amostra Status", ["Pendente", "Em Progresso", "Feita"])
-    with f3:
-        dt_envio = f3.date_input("Data de Envio", hoje)
-        aprov_amostra = f3.selectbox("Amostra Aprovada?", ["Pendente", "Sim", "Não"])
-    with f4:
-        tab_med = f4.selectbox("Tabela de Medidas?", ["Sim", "Não", "N/A"])
-        med_aprov = f4.selectbox("Medidas Aprovadas?", ["Pendente", "Sim", "Não"])
-    with f5:
-        tam_amostra = f5.text_input("Tam. Amostra", placeholder="Ex: M")
-        nr_cert = f5.text_input("Nº Certificado")
-        
-    c_obs = st.text_input("Observações Gerais")
-    dt_expira = st.date_input("Data de Vencimento do Documento", hoje)
-
-    if st.form_submit_button("Inserir Registro no Banco"):
-        if nome_material:
-            conn = conectar_banco()
-            conn.execute("""
-                INSERT INTO componentes (categoria, nome, documento, amostra, data_envio, aprovado, tabela_medidas, medidas_aprovadas, tamanho_amostra, num_certificado, expira, notas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (cat, nome_material, doc_tipo, status_amostra, str(dt_envio), aprov_amostra, tab_med, med_aprov, tam_amostra, nr_cert, str(dt_expira), c_obs))
-            conn.commit()
-            conn.close()
-            st.success(f"{nome_material} guardado com segurança no banco de dados!")
-            st.rerun()
-
-# ==========================================
-# 8. EXIBIÇÃO EM ABAS (BUSCA DIRETA NO BANCO)
-# ==========================================
-if not df_componentes.empty:
-    categorias_abas = ["Tecido", "Reflex", "Elastic", "Buttons", "Extras"]
-    tabs = st.tabs(categorias_abas)
+# --- AUTO-SEED DATA INJECTION FOR SAFETY ---
+opcoes_exatas = ["Technical documentation SPLAG", "Technical documentation confirmed", "Measurement chart", "Measurement check of sample", "Care label"]
+if active_project_id > 0:
+    cursor = conn.cursor()
+    for tarefa_nome in opcoes_exatas:
+        cursor.execute("SELECT COUNT(*) FROM project_checklist WHERE project_id = ? AND task = ? AND box_num = '2'", (active_project_id, tarefa_nome))
+        if cursor.fetchone() == 0:
+            cursor.execute("INSERT INTO project_checklist (project_id, box_num, phase, task, status, last_update) VALUES (?, '2', 'Technical Documentation', ?, 'Pending', '')", (active_project_id, tarefa_nome))
     
-    for idx, cat_nome in enumerate(categorias_abas):
-        with tabs[idx]:
-            df_filtrado = df_componentes[df_componentes["categoria"] == cat_nome]
-            if not df_filtrado.empty:
-                st.dataframe(df_filtrado[["nome", "documento", "amostra", "data_envio", "aprovado", "tabela_medidas", "medidas_aprovadas", "tamanho_amostra", "num_certificado", "expira", "notas"]], use_container_width=True)
-            else:
-                st.info(f"Nenhum material cadastrado na categoria: {cat_nome}")
+    tarefas_extras = [
+        ("4", "Sample Garment", "Sample in progress"), ("4", "Sample Garment", "Sample revision at KUNG"),
+        ("4", "Sample Garment", "Sample confirmed"), ("4", "Sample Garment", "Sample sent to OETI!"),
+        ("4", "Sample Mock-up", "Mock-ups needed"), ("4", "Sample Mock-up", "Seam samples ready"),
+        ("4", "Sample Mock-up", "Fabric needed"), ("4", "Sample Mock-up", "Fabric sent to OETI"),
+        ("5", "Finalisation", "Technical sheet revision"), ("5", "Finalisation", "BOM revision"), ("5", "Finalisation", "Care label revision")
+    ]
+    for b_num, ph, tk in tarefas_extras:
+        cursor.execute("SELECT COUNT(*) FROM project_checklist WHERE project_id = ? AND task = ? AND box_num = ?", (active_project_id, tk, b_num))
+        if cursor.fetchone() == 0:
+            cursor.execute("INSERT INTO project_checklist (project_id, box_num, phase, task, status, last_update) VALUES (?, ?, ?, ?, 'Pending', '')", (active_project_id, b_num, ph, tk))
+    conn.commit()
+
+# Reload records after seeding
+df_checklist = pd.read_sql_query(f"SELECT * FROM project_checklist WHERE project_id = {active_project_id}", conn)
+df_components = pd.read_sql_query(f"SELECT * FROM production_components WHERE project_id = {active_project_id}", conn)
+conn.close()
+
+detailed_categories = ["Fabric", "Zipper", "Lining", "Elastic", "Button", "Thread", "Reflex", "Velcro"]
+today = date.today()
+
+# ==========================================
+# 2. PROJECT HEADER & NEW INSTITUTE STATUS
+# ==========================================
+if active_project_id > 0:
+    with st.expander("📝 Project Header & Certification Status", expanded=True):
+        with st.form("edit_project_header"):
+            col_h1, col_h2 = st.columns(2)
+            with col_h1:
+                st.markdown("#### 🔍 Project Context")
+                h_article = st.text_input("Article Number", value=str(proj_row["article_number"]))
+                h_model = st.text_input("Model No.", value=str(proj_row["model_no"]))
+                h_bom = st.text_input("BOM Status", value=str(proj_row["bom_status"]))
+            with col_h2:
+                st.markdown("#### 📑 Protocol & Institute Type")
+                lista_protocolos = ["New Certification", "Application for extension", "Re-certification"]
+                status_salvo = proj_row["protocol_type"] if "protocol_type" in proj_row and proj_row["protocol_type"] else "New Certification"
+                index_proto = lista_protocolos.index(status_salvo) if status_salvo in lista_protocolos else 0
+                tipo_protocolo = st.radio("Select Certification Status for this Project:", lista_protocolos, index=index_proto)
+                
+                # NOVO MENU DE ESCOLHA DO INSTITUTO SOLICITADO
+                lista_institutos = ["OETI", "Testex", "Hohenstein"]
+                instituto_salvo = proj_row["institute"] if "institute" in proj_row and proj_row["institute"] else "OETI"
+                index_inst = lista_institutos.index(instituto_salvo) if instituto_salvo in lista_institutos else 0
+                tipo_instituto = st.selectbox("Select Certification Institute:", lista_institutos, index=index_inst)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("Save Project & Certification Records"):
+                conn = connect_db()
+                conn.execute("UPDATE projects SET article_number=?, model_no=?, bom_status=?, protocol_type=?, institute=? WHERE id=?", (h_article, h_model, h_bom, tipo_protocolo, tipo_instituto, active_project_id))
+                conn.commit()
+                conn.close()
+                st.success("Project records synchronized!")
+                st.rerun()
+
+# ==========================================
+# 3. MAIN TABS (NUMBERS ONLY)
+# ==========================================
+st.markdown("---")
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📦 1: Expiry & Add", "📑 2: Documentation", "🛠️ 3: Database Logs", "👕 4: Samples & Mock-ups", "🏁 5: Finalisation"
+])
+
+# --- TAB 1 ---
+with tab1:
+    st.header("1️⃣ 1: Certificate Expiry Control")
+    alarms_triggered = []
+    if not df_components.empty:
+        for idx, r in df_components.iterrows():
+            try:
+                exp_date = datetime.strptime(r["expiry_date"], "%Y-%m-%d").date()
+                dias_restantes = (exp_date - today).days
+                if r["doc_type"] == "OEKO-Tex Standard 100" and dias_restantes <= 1:
+                    alarms_triggered.append(f"⚠️ **OEKO-TEX ALERT:** {r['material_name']} ({r['category']}) expires tomorrow or is invalid!")
+                elif r["doc_type"] != "OEKO-Tex Standard 100" and dias_restantes <= 21:
+                    alarms_triggered.append(f"⚠️ **TEST REPORT ALERT (3 WEEKS):** {r['material_name']} ({r['doc_type']}) expires in {dias_restantes} days.")
+            except: pass
+
+    if alarms_triggered:
+        for alarm in alarms_triggered: st.warning(alarm)
+    else: st.success("All certification timelines for this project are safe.")
+
+    with st.form("box1_flat_form", clear_on_submit=True):
+        st.markdown("#### 📥 Register New Component / Material Document")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            c_cat = st.selectbox("Component Option", detailed_categories, key="b1_cat")
+            c_name = st.text_input("Material Name / Reference")
+        with c2:
+            c_type = st.selectbox("Document Protocol", ["OEKO-Tex Standard 100", "Test Report Fabric", "Test Report Accessories"], key="b1_type")
+            c_num = st.text_input("Certificate Unique ID")
+        with c3:
+            c_exp = st.date_input("Document Expiry Date", today, key="b1_date")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("Save Item Validity Data"):
+                if c_name and active_project_id > 0:
+                    conn = connect_db()

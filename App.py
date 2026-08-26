@@ -17,8 +17,8 @@ if 'institute_shipments' not in st.session_state:
 
 status_options = [
     "NO NEED", 
-    "IN PROGRESS / EM PROCESSO", 
-    "GREEN / OK / TERMINADO"
+    "IN PROGRESS ", 
+    "GREEN / OK "
 ]
 
 # CRIAÇÃO DOS VALORES PADRÃO DA SESSÃO
@@ -50,8 +50,8 @@ def check_expiration(exp_date):
 
 # --- ESTRUTURA DAS 6 ABAS NA TELA ---
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "1. Project Info", "2. Documents (Multi-Material)", "3. Technical Documentation", 
-    "4. Sample Garment (3-Sections Log)", "5. Sample Mockups", "6. Preview & Finalisation"
+    "1. Project Info", "2. Documents ", "3. Technical Documentation", 
+    "4. Sample Garment", "5. Sample Mockups", "6. Preview & Finalisation"
 ])
 
 # ================= TAB 1: PROJECT INFO =================

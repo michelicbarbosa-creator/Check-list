@@ -196,3 +196,14 @@ with tab4:
         st.dataframe(st.session_state.institute_shipments, use_container_width=True)
         if st.button("🗑️ Clear Shipment History"):
             st.session_state.institute_shipments = []
+            
+# ================= TAB 5: SAMPLE MOCKUPS =================
+with tab5:
+    st.header("Sample Mockups Configuration & Tracking")
+    col_mock1, col_mock2 = st.columns(2)
+    
+    with col_mock1:
+        st.subheader("📝 Mockup Production Details")
+        mockup_article = st.text_input("ARTICLE OF MOCKUPS", value="Mock-UX Fabric", key="m5_art")
+        mock_order_num = st.text_input("ORDER NUMBER", value="ORD-2026", key="m5_ord")
+        fabric_used = st.text_input("FABRIC USED (Tecidos)", value="Cotton Blend 230g", key="m5_fab")

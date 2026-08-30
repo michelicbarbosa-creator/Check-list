@@ -5,7 +5,7 @@ import json
 
 # Configuração Principal do Programa
 st.set_page_config(page_title="Certification Checklist", layout="wide")
-st.title("📋 Certification Checklist Program")
+st.title("📋 Certification Checklist Program test1")
 
 # 1. INICIALIZAÇÃO DE MEMÓRIA GLOBAL (Garante que nenhuma variável dê erro de leitura)
 if 'materials_list' not in st.session_state:
